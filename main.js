@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import './style.css'
+import gsap from 'gsap'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 // Scene
 const scene = new THREE.Scene();
@@ -9,6 +11,7 @@ const scene = new THREE.Scene();
 const geometry = new THREE.SphereGeometry(3, 64, 64)
 const material = new THREE.MeshStandardMaterial({
     color: "#00ff83",
+    roughness: 0.4,
 })
 
 // Sizes
@@ -17,6 +20,7 @@ const sizes = {
     height: window.innerHeight,
 }
 
+// Sphere mesh
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
@@ -30,12 +34,20 @@ const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height)
 camera.position.z = 10
 scene.add(camera)
 
+
 // Renderer
 const canvas = document.querySelector('.webgl')
 const renderer = new THREE.WebGLRenderer({ canvas })
 renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(2)
 renderer.render(scene, camera)
 
+// Controls
+const controls = new OrbitControls(camera, canvas)
+controls.enableDamping = true
+controls.autoRotate = true
+
+// Resize
 window.addEventListener('resize', () => {
     // Update
     sizes.width = window.innerWidth
@@ -46,8 +58,37 @@ window.addEventListener('resize', () => {
     renderer.setSize(sizes.width, sizes.height)
 })
 
+// Render Loop
 const loop = () => {
+    controls.update()
     renderer.render(scene, camera)
     window.requestAnimationFrame(loop)
 }
 loop()
+
+// Timeline
+const t1 = gsap.timeline({ defaults: { duration: 1 } })
+t1.fromTo(mesh.scale, { z: 0, x: 0, y: 0 }, { z: 1, x: 1, y: 1 })
+t1.fromTo("nav", { y: "-100%" }, { y: "0%" })
+t1.fromTo(".title", { opacity: 0 }, { opacity: 1 })
+
+// Mouse Animation Color
+let mouseDown = false
+let rgb = []
+
+window.addEventListener("mousedown", () => (mouseDown = true))
+window.addEventListener("mouseup", () => (mouseDown = false))
+
+window.addEventListener("mousemove", (e) => {
+    // Get mouse position while pressed
+    if (mouseDown) {
+        rgb = [
+            Math.round((e.pageX / sizes.width) * 255),
+            Math.round((e.pageY / sizes.width) * 255),
+            150,
+        ]
+    }
+    // Change light color with mouse position
+    let newColor = new THREE.Color(`rgb(${rgb.join(",")})`)
+    gsap.to(mesh.material.color, { r: newColor.r, g: newColor.g, b: newColor.b })
+})
